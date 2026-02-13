@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Valentine — NO Button Trick</title>
+        <link rel="stylesheet" href="valentine.css">
+    </head>
+    <body>
+
+        <canvas id="heartsCanvas"></canvas>
+
+        <!-- Name input step -->
+        <div class="card" id="nameStep" role="main">
+            <h1>Enter your name</h1>
+            <form id="nameForm">
+                <input type="text" id="userName" placeholder="Your name" required autocomplete="off" />
+                <br>
+                <button type="submit">Continue</button>
+            </form>
+        </div>
+
+        <!-- Main card, hidden until name is entered -->
+        <div class="card" id="mainCard" role="main" aria-labelledby="title">
+            <h1 id="title">Will you be my Valentine?</h1>
+            <p>Click the heart if you mean it — or try to catch the NO button if you can.</p>
+            <div class="buttons">
+                <button id="yesBtn" aria-label="Yes">♥ Yes</button>
+                <button id="noBtn" aria-label="No, crying">No 😭</button>
+            </div>
+        </div>
+
+        <!-- Celebration modal (hidden by default) -->
+        <div class="modal-overlay" id="modalOverlay" hidden aria-hidden="true">
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+                <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
+                                <div id="lottieContainer" class="lottie-container">
+                                    <!-- external lottie elements removed; using internal modal content as the "It's a date" animation -->
+                                </div>
+                <div id="modalDefaultContent">
+                  <h2 id="modalTitle">It's a date! 💞</h2>
+                                    <p id="modalMessage" class="modal-message" aria-live="polite"></p>
+                  <div class="celebration">
+                      <div class="person boy">
+                          <div class="head" aria-hidden="true"></div>
+                          <div class="body" aria-hidden="true"></div>
+                      </div>
+                      <div class="hearts" aria-hidden="true">
+                          <span class="heart">❤</span>
+                          <span class="heart">❤</span>
+                          <span class="heart">❤</span>
+                      </div>
+                      <div class="person girl">
+                          <div class="head" aria-hidden="true"></div>
+                          <div class="body" aria-hidden="true"></div>
+                      </div>
+                  </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>Made with ❤️</footer>
+
+
+        <!-- External lottie scripts removed to eliminate external dependencies -->
+        <script>
+        // Name step logic
+        (function(){
+            const nameStep = document.getElementById('nameStep');
+            const mainCard = document.getElementById('mainCard');
+            const nameForm = document.getElementById('nameForm');
+            const userNameInput = document.getElementById('userName');
+            const title = document.getElementById('title');
+            let userName = '';
+            nameForm.addEventListener('submit', function(e){
+                e.preventDefault();
+                userName = userNameInput.value.trim();
+                if(userName){
+                    nameStep.style.display = 'none';
+                    mainCard.style.display = 'block';
+                    title.innerHTML = `Will you be my Valentine, <span class="user-name">${userName}</span>?`;
+                    // Reset No button to static beside Yes
+                    const noBtn = document.getElementById('noBtn');
+                    if(noBtn){
+                        noBtn.style.position = '';
+                        noBtn.style.left = '';
+                        noBtn.style.top = '';
+                        noBtn.style.margin = '';
+                        noBtn.classList.remove('moved');
+                        noBtn.style.transition = '';
+                    }
+                    window.isNoBtnPositioned = false;
+                }
+            });
+        })();
+
+        // ========= NO button behavior =========
+        (function(){
+            const noBtn = document.getElementById('noBtn');
+            const yesBtn = document.getElementById('yesBtn');
+            const padding = 14; // minimum distance from viewport edges
+
+            function getCenter(el){
+                const r = el.getBoundingClientRect();
+                return {x: r.left + r.width/2, y: r.top + r.height/2, w: r.width, h: r.height};
+            }
+
+            function placeButtonAt(el, left, top){
+                el.style.position = 'absolute';
+                el.style.left = left + 'px';
+                el.style.top = top + 'px';
+            }
+
+            // Keep original static layout for sizing; we'll absolutely position when needed
+            // Use a global flag so we can reset it when showing the card
+            window.isNoBtnPositioned = false;
+
+            function moveAwayFromCursor(clientX, clientY){
+                const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+                const vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+                const btnRect = noBtn.getBoundingClientRect();
+
+                // ensure button is absolute positioned once we move it
+                if(!window.isNoBtnPositioned){
+                    // use fixed positioning so the button is placed relative to the viewport
+                    // and won't get clipped by parent containers on resize
+                    const curLeft = btnRect.left;
+                    const curTop = btnRect.top;
+                    noBtn.style.position = 'fixed';
+                    noBtn.style.left = curLeft + 'px';
+                    noBtn.style.top = curTop + 'px';
+                    noBtn.style.margin = '0';
+                    window.isNoBtnPositioned = true;
+                }
+
+                const btnW = btnRect.width;
+                const btnH = btnRect.height;
+
+                const minX = padding;
+                const maxX = vw - btnW - padding;
+                const minY = padding;
+                const maxY = vh - btnH - padding;
+
+                // try to find a new spot not too close to cursor
+                let attempts = 0;
+                let newX, newY;
+                do{
+                    newX = Math.floor(Math.random() * (maxX - minX + 1)) + minX;
+                    newY = Math.floor(Math.random() * (maxY - minY + 1)) + minY;
+                    attempts++;
+                }while(Math.hypot((newX + btnW/2)-clientX, (newY + btnH/2)-clientY) < Math.max(120, btnW) && attempts < 30);
+
+                // animate movement
+                noBtn.classList.add('moved');
+                noBtn.style.transition = 'left .18s ease, top .18s ease, transform .14s ease';
+                noBtn.style.left = newX + 'px';
+                noBtn.style.top = newY + 'px';
+                setTimeout(()=>noBtn.classList.remove('moved'), 220);
+            }
+
+            // Track mouse and trigger move when within threshold
+            const threshold = 140; // px
+            window.addEventListener('mousemove', (e)=>{
+                if(noBtn.style.display === 'none') return;
+                const center = getCenter(noBtn);
+                const d = Math.hypot(center.x - e.clientX, center.y - e.clientY);
+                if(d < threshold){
+                    moveAwayFromCursor(e.clientX, e.clientY);
+                }
+            });
+
+            // If viewport resizes, constrain button back in bounds (works for fixed positioning)
+            window.addEventListener('resize', ()=>{
+                if(!window.isNoBtnPositioned) return;
+                const vw = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+                const vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+                const btnRect = noBtn.getBoundingClientRect();
+                const left = Math.min(Math.max(padding, btnRect.left), vw - btnRect.width - padding);
+                const top = Math.min(Math.max(padding, btnRect.top), vh - btnRect.height - padding);
+                noBtn.style.left = left + 'px';
+                noBtn.style.top = top + 'px';
+            });
+
+            // Yes button action -> open celebration modal
+            const modalOverlay = document.getElementById('modalOverlay');
+            const modalClose = document.getElementById('modalClose');
+
+            // Random final messages to show in the modal
+            const finalMessages = [
+                "You just made me the happiest person ❤️ I can’t wait to celebrate us.",
+                "Best ‘yes’ I’ve ever received 😘 Valentine’s Day is officially perfect.",
+                "Now that you’re my Valentine, I’m counting down the moments until I see you 💕",
+                "Thank you for saying yes… my heart is smiling because of you 💖",
+                "Looks like I’ve got the most beautiful Valentine ever 😍",
+                "You + Me + Valentine’s Day = My favorite love story ❤️",
+                "I promise to make this Valentine’s one to remember 💘"
+            ];
+
+            function showModal(){
+                modalOverlay.hidden = false;
+                modalOverlay.setAttribute('aria-hidden','false');
+                // prevent page scroll behind modal
+                document.body.style.overflow = 'hidden';
+                // Show the built-in celebration content; we removed external lottie elements.
+                document.getElementById('lottieContainer').style.display = 'none';
+                document.getElementById('modalDefaultContent').style.display = 'block';
+                // pick a random final message each time the modal opens
+                try{
+                    const msgEl = document.getElementById('modalMessage');
+                    if(msgEl){
+                        const idx = Math.floor(Math.random() * finalMessages.length);
+                        msgEl.textContent = finalMessages[idx];
+                    }
+                }catch(e){}
+
+                // fade out the No button then remove it from the DOM
+                if(noBtn){
+                    // add fade class (CSS transition handles opacity/transform)
+                    noBtn.classList.add('fade-out');
+
+                    // after transition ends remove element (use once listener)
+                    const onEnd = (ev) => {
+                        try{ if(noBtn && noBtn.parentNode) noBtn.parentNode.removeChild(noBtn); }catch(e){}
+                        noBtn.removeEventListener('transitionend', onEnd);
+                    };
+                    noBtn.addEventListener('transitionend', onEnd, {once:true});
+
+                    // fallback: if transitionend doesn't fire, remove after 700ms
+                    setTimeout(()=>{ try{ if(noBtn && noBtn.parentNode) noBtn.parentNode.removeChild(noBtn);}catch(e){} }, 700);
+                }
+                // auto-close after 6 seconds
+                setTimeout(hideModal, 6000);
+            }
+
+            function hideModal(){
+                // hide modal and restore page
+                modalOverlay.hidden = true;
+                modalOverlay.setAttribute('aria-hidden','true');
+                document.body.style.overflow = '';
+                // Reset modal content for next time (use internal celebration)
+                document.getElementById('modalDefaultContent').style.display = 'block';
+                document.getElementById('lottieContainer').style.display = 'none';
+            }
+
+            yesBtn.addEventListener('click', ()=>{
+                showModal();
+            });
+
+            modalClose.addEventListener('click', hideModal);
+            modalOverlay.addEventListener('click', (e)=>{
+                if(e.target === modalOverlay) hideModal();
+            });
+
+            // Prevent accidental focus trap on noBtn
+            noBtn.addEventListener('focus', ()=>{
+                // move it slightly when keyboard tries to focus
+                const rect = noBtn.getBoundingClientRect();
+                moveAwayFromCursor(rect.left + rect.width/2, rect.top + rect.height/2);
+                noBtn.blur();
+            });
+        })();
+
+        // ========= Falling hearts canvas animation =========
+        (function(){
+            const canvas = document.getElementById('heartsCanvas');
+            const ctx = canvas.getContext('2d');
+            let DPR = window.devicePixelRatio || 1;
+            let width, height;
+
+            function resize(){
+                DPR = window.devicePixelRatio || 1;
+                width = window.innerWidth;
+                height = window.innerHeight;
+                canvas.width = Math.round(width * DPR);
+                canvas.height = Math.round(height * DPR);
+                canvas.style.width = width + 'px';
+                canvas.style.height = height + 'px';
+                ctx.setTransform(DPR,0,0,DPR,0,0);
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            // utility: draw a simple heart at x,y
+            function drawHeart(ctx,x,y,size,color,rotation){
+                ctx.save();
+                ctx.translate(x,y);
+                if(rotation) ctx.rotate(rotation);
+                ctx.beginPath();
+                const s = size/20;
+                ctx.moveTo(0, -10*s);
+                ctx.bezierCurveTo(12*s, -28*s, 42*s, -6*s, 0, 18*s);
+                ctx.bezierCurveTo(-42*s, -6*s, -12*s, -28*s, 0, -10*s);
+                ctx.closePath();
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // heart particles
+            const hearts = [];
+            function spawnHeart(){
+                const size = 8 + Math.random()*22;
+                hearts.push({
+                    x: Math.random()*width,
+                    y: -20 - Math.random()*60,
+                    vy: 20 + Math.random()*60,
+                    vx: -15 + Math.random()*30,
+                    size,
+                    rot: (Math.random()-0.5)*0.6,
+                    spin: (Math.random()-0.5)*0.02,
+                    color: Math.random()>0.5 ? '#ff5d7e' : '#ff9cbc',
+                    life: 0
+                });
+            }
+
+            let last = performance.now();
+            function frame(t){
+                const dt = Math.min(40, t - last) / 1000; last = t;
+                ctx.clearRect(0,0,width,height);
+
+                // spawn occasionally
+                if(Math.random() < 0.18) spawnHeart();
+
+                for(let i = hearts.length-1;i>=0;i--){
+                    const h = hearts[i];
+                    h.x += h.vx * dt;
+                    h.y += h.vy * dt;
+                    h.rot += h.spin;
+                    h.life += dt;
+
+                    const alpha = Math.max(0, 1 - (h.y / (height*0.9)));
+                    ctx.globalAlpha = alpha;
+                    drawHeart(ctx, h.x, h.y, h.size, h.color, h.rot);
+                    ctx.globalAlpha = 1;
+
+                    if(h.y - h.size > height + 40 || h.x < -100 || h.x > width + 100) hearts.splice(i,1);
+                }
+
+                requestAnimationFrame(frame);
+            }
+            requestAnimationFrame(frame);
+        })();
+        </script>
+    </body>
+</html>
