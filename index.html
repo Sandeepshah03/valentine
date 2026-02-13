@@ -298,11 +298,13 @@
                             messageStep.style.display = 'none';
                             showModal();
                         } else {
-                            alert('Failed to save message. Please try again.');
+                            const errorData = await response.json().catch(() => ({}));
+                            console.error('Server error:', errorData);
+                            alert('Failed to save message: ' + (errorData.error || 'Unknown error'));
                         }
                     } catch (error) {
                         console.error('Error saving message:', error);
-                        alert('Failed to save message. Please try again.');
+                        alert('Failed to save message. Make sure the server is running at http://localhost:3000');
                     }
                 }
             });

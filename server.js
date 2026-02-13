@@ -50,11 +50,12 @@ app.post('/api/messages', (req, res) => {
 
         messages.push(newEntry);
         fs.writeFileSync(DATA_FILE, JSON.stringify(messages, null, 2));
-
+        
+        console.log('Message saved successfully:', newEntry);
         res.json({ success: true, data: newEntry });
     } catch (error) {
         console.error('Error saving message:', error);
-        res.status(500).json({ error: 'Failed to save message' });
+        res.status(500).json({ error: 'Failed to save message: ' + error.message });
     }
 });
 
