@@ -30,6 +30,17 @@
             </div>
         </div>
 
+        <!-- Message input step -->
+        <div class="card" id="messageStep" role="main">
+            <h1>Leave a message 💌</h1>
+            <p id="messagePrompt"></p>
+            <form id="messageForm">
+                <textarea id="userMessage" placeholder="Write your Valentine's message..." rows="5" autocomplete="off"></textarea>
+                <br>
+                <button type="submit">Send Message</button>
+            </form>
+        </div>
+
         <!-- Celebration modal (hidden by default) -->
         <div class="modal-overlay" id="modalOverlay" hidden aria-hidden="true">
             <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -98,7 +109,16 @@
         (function(){
             const noBtn = document.getElementById('noBtn');
             const yesBtn = document.getElementById('yesBtn');
+            const messageStep = document.getElementById('messageStep');
+            const mainCard = document.getElementById('mainCard');
+            const messageForm = document.getElementById('messageForm');
+            const userMessageInput = document.getElementById('userMessage');
+            const messagePrompt = document.getElementById('messagePrompt');
+            let userName = '';
             const padding = 14; // minimum distance from viewport edges
+            
+            // Modal elements - declared later to avoid redeclaration
+            let modalOverlay, modalClose;
 
             function getCenter(el){
                 const r = el.getBoundingClientRect();
@@ -182,8 +202,9 @@
             });
 
             // Yes button action -> open celebration modal
-            const modalOverlay = document.getElementById('modalOverlay');
-            const modalClose = document.getElementById('modalClose');
+            // Initialize modal elements
+            modalOverlay = document.getElementById('modalOverlay');
+            modalClose = document.getElementById('modalClose');
 
             // Random final messages to show in the modal
             const finalMessages = [
@@ -243,7 +264,47 @@
             }
 
             yesBtn.addEventListener('click', ()=>{
-                showModal();
+                // Hide main card and show message step
+                mainCard.style.display = 'none';
+                messageStep.style.display = 'block';
+                messagePrompt.textContent = `Now share what's in your heart 💕`;
+                userMessageInput.focus();
+            });
+
+            // Handle message form submission
+            messageForm.addEventListener('submit', async function(e){
+                e.preventDefault();
+                const message = userMessageInput.value.trim();
+                if(message){
+                    try {
+                        // Get user name from first form or use a default
+                        const userNameInput = document.getElementById('userName');
+                        userName = userNameInput.value || 'Anonymous';
+                        
+                        // Send to backend
+                        const response = await fetch('/api/messages', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                name: userName,
+                                message: message
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            // Show the celebration modal
+                            messageStep.style.display = 'none';
+                            showModal();
+                        } else {
+                            alert('Failed to save message. Please try again.');
+                        }
+                    } catch (error) {
+                        console.error('Error saving message:', error);
+                        alert('Failed to save message. Please try again.');
+                    }
+                }
             });
 
             modalClose.addEventListener('click', hideModal);

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valentine Messages - Admin Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card .number {
+            font-size: 2.5em;
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .messages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .message-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #ff477e;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .message-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .message-card .name {
+            color: #ff477e;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .message-card .message {
+            color: #333;
+            font-size: 1em;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            font-style: italic;
+            border-left: 3px solid #ffd1dc;
+            padding-left: 15px;
+        }
+        
+        .message-card .timestamp {
+            color: #999;
+            font-size: 0.85em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+        }
+        
+        .empty-state h2 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .empty-state p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.2em;
+        }
+        
+        .refresh-btn {
+            display: inline-block;
+            background: white;
+            color: #667eea;
+            padding: 12px 24px;
+            border-radius: 25px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+            margin-bottom: 20px;
+        }
+        
+        .refresh-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .back-link {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Valentine</a>
+        
+        <header>
+            <h1>💌 Valentine Messages</h1>
+            <p>All the love stories shared today</p>
+        </header>
+        
+        <button class="refresh-btn" onclick="loadMessages()">🔄 Refresh</button>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Total Valentines</h3>
+                <div class="number" id="totalCount">0</div>
+            </div>
+        </div>
+        
+        <div id="messagesContainer">
+            <div class="loading">Loading messages...</div>
+        </div>
+    </div>
+    
+    <script>
+        async function loadMessages() {
+            try {
+                const response = await fetch('/api/messages');
+                const messages = await response.json();
+                
+                const container = document.getElementById('messagesContainer');
+                const totalCount = document.getElementById('totalCount');
+                
+                totalCount.textContent = messages.length;
+                
+                if (messages.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h2>No messages yet 😢</h2>
+                            <p>Be the first to share your Valentine's message!</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Sort by newest first
+                messages.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                
+                container.innerHTML = messages.map(msg => {
+                    const date = new Date(msg.timestamp);
+                    const formattedDate = date.toLocaleString();
+                    
+                    return `
+                        <div class="message-card">
+                            <div class="name">💕 ${escapeHtml(msg.name)}</div>
+                            <div class="message">"${escapeHtml(msg.message)}"</div>
+                            <div class="timestamp">${formattedDate}</div>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Error loading messages:', error);
+                document.getElementById('messagesContainer').innerHTML = `
+                    <div class="empty-state">
+                        <h2>Error loading messages ❌</h2>
+                        <p>Please try again later</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+        
+        // Load messages on page load
+        loadMessages();
+        
+        // Auto-refresh every 5 seconds
+        setInterval(loadMessages, 5000);
+    </script>
+</body>
+</html>
