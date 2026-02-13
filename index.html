@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Valentine Special</title>
         <link rel="stylesheet" href="valentine.css">
+        <script src="config.js"></script>
     </head>
     <body>
 
@@ -282,7 +283,7 @@
                         userName = userNameInput.value || 'Anonymous';
                         
                         // Send to backend
-                        const response = await fetch('/api/messages', {
+                        const response = await fetch(API_BASE_URL + '/api/messages', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'
